@@ -5,6 +5,7 @@
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/TypeBuilder.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Support/raw_ostream.h"
@@ -51,6 +52,21 @@ namespace {
         loadString,
         "store_string"
       );
+
+      for(Function &F : M) {
+        for(BasicBlock &B : F) {
+          for(Instruction &I : B) {
+            LoadInst * load = nullptr;
+            StoreInst * store = nullptr;
+
+            if((load = dyn_cast<LoadInst>(&I)) != nullptr) {
+              outs() << "Load instruction\n";
+            } else if ((store = dyn_cast<StoreInst>(&I)) != nullptr) {
+              outs() << "Store instruction\n";
+            }
+          }
+        }
+      }
 
       return false;
     }
