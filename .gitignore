@@ -1,2 +1,7 @@
 # Build
 build/*
+
+# Binaries and IRs
+*.bin
+*.out
+*.ll
