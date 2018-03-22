@@ -3,6 +3,9 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/TypeBuilder.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -16,6 +19,13 @@ namespace {
 
     // Main pass function
     virtual bool runOnModule(Module &M) {
+      Function * print = Function::Create(
+        FunctionType::get(TypeBuilder<int(char *, ...),false>::get(M.getContext()), true),
+        Function::ExternalLinkage,
+        "printf",
+        &M
+      );
+
 
       return false;
     }
