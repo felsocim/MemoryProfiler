@@ -36,6 +36,21 @@ namespace {
         "I am storing %ld at address %p\n"
       );
 
+      GlobalVariable * loadStringVariable = new GlobalVariable(
+        loadString->getType(),
+        true,
+        Function::InternalLinkage,
+        loadString,
+        "load_string"
+      );
+
+      GlobalVariable * storeStringVariable = new GlobalVariable(
+        storeString->getType(),
+        true,
+        Function::InternalLinkage,
+        loadString,
+        "store_string"
+      );
 
       return false;
     }
