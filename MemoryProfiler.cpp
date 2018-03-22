@@ -26,6 +26,16 @@ namespace {
         &M
       );
 
+      Constant * loadString = ConstantDataArray::getString(
+        M.getContext(),
+        "I am loading address %p\n"
+      );
+
+      Constant * storeString = ConstantDataArray::getString(
+        M.getContext(),
+        "I am storing %ld at address %p\n"
+      );
+
 
       return false;
     }
