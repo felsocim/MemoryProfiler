@@ -128,7 +128,7 @@ namespace {
 
       errs() << "Successfully detected " << loadCounter << " load call(s) and " << storeCounter << " store call(s) [total " << (loadCounter + storeCounter) << "]\n";
 
-      return false;
+      return true;
     }
   };
 }
