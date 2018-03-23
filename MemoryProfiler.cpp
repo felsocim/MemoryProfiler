@@ -67,7 +67,7 @@ namespace {
       // Initializing a zero constant
       Constant * nullValue = Constant::getNullValue(IntegerType::getInt32Ty(M.getContext()));
 
-      // Creating array of indices which we'll use to point to the beginning of a string array storing our messages
+      // Creating array of indices which we'll use to point to the beginning of string arrays storing our messages
       std::vector<Constant *> beginAt;
       beginAt.push_back(nullValue);
       beginAt.push_back(nullValue);
@@ -141,5 +141,5 @@ static void registerMemoryProfilerPass(const PassManagerBuilder &, legacy::PassM
   PM.add(new MemoryProfiler());
 }
 
-// ! Not suitable to run with optimization (-O) compiler option(s) ! (@see EP_EnabledOnOptLevel0)
+// ! Not suitable to run with optimization (-O) compiler option(s) except the lowest one: 'O0' ! (@see EP_EnabledOnOptLevel0)
 static RegisterStandardPasses RegisterMyPass(PassManagerBuilder::EP_EnabledOnOptLevel0, registerMemoryProfilerPass);
