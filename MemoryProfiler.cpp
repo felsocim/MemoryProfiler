@@ -1,5 +1,7 @@
+#include <vector>
+
+// LLVM includes
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/GlobalVariable.h"
@@ -7,10 +9,10 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/TypeBuilder.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/IRBuilder.h"
-#include <vector>
 
 using namespace llvm;
 
@@ -24,13 +26,15 @@ namespace {
     virtual bool runOnModule(Module &M) {
       IRBuilder<> * builder = new IRBuilder<>(M.getContext());
 
+      // Creating 'printf' function instance
       Function * print = Function::Create(
-        TypeBuilder<int(char *, ...),false>::get(M.getContext()),
+        TypeBuilder<int(char *, ...),false>::get(M.getContext()), // Function type construction
         Function::ExternalLinkage,
         "printf",
         &M
       );
 
+      // Creating messages constants
       Constant * loadString = ConstantDataArray::getString(
         M.getContext(),
         "I am loading address %p\n"
@@ -41,12 +45,7 @@ namespace {
         "I am storing %ld at address %p\n"
       );
 
-      llvm::Constant * zero = llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(M.getContext()));
-
-      std::vector<llvm::Constant *> indices;
-      indices.push_back(zero);
-      indices.push_back(zero);
-
+      // Defining and initializing global variables corresponding to message strings
       GlobalVariable * loadStringVariable = new GlobalVariable(
         M,
         loadString->getType(),
@@ -65,51 +64,69 @@ namespace {
         "store_string"
       );
 
-      Constant * loadStringPointer = ConstantExpr::getGetElementPtr(loadString->getType(), loadStringVariable, indices);
-      Constant * storeStringPointer = ConstantExpr::getGetElementPtr(storeString->getType(), storeStringVariable, indices);
+      // Initializing a zero constant
+      Constant * nullValue = Constant::getNullValue(IntegerType::getInt32Ty(M.getContext()));
+
+      // Creating array of indices which we'll use to point to the beginning of a string array storing our messages
+      std::vector<Constant *> beginAt;
+      beginAt.push_back(nullValue);
+      beginAt.push_back(nullValue);
+
+      // Retrieving 'getelementptr' form of our string constants
+      Constant * loadStringPointer = ConstantExpr::getGetElementPtr(loadString->getType(), loadStringVariable, beginAt);
+      Constant * storeStringPointer = ConstantExpr::getGetElementPtr(storeString->getType(), storeStringVariable, beginAt);
+
+      int loadCounter = 0, storeCounter = 0;
 
       for(Function &F : M) {
         for(BasicBlock &B : F) {
           for(Instruction &I : B) {
             LoadInst * load = nullptr;
             StoreInst * store = nullptr;
+
+            // Setting insertion point for new instructions
             builder->SetInsertPoint(&I);
 
-            if((load = dyn_cast<LoadInst>(&I)) != nullptr) {
-              outs() << "Load instruction\n";
-              Value * address = load->getPointerOperand();
+            if((load = dyn_cast<LoadInst>(&I)) != nullptr) { // Check if the current instruction is a load
+              loadCounter++;
+
+              Value * address = load->getPointerOperand(); // Getting source address
+
+              // Constructing argument array for 'printf' function call
               std::vector<Value *> args;
               args.push_back(loadStringPointer);
               args.push_back(address);
 
+              // Adding 'printf' function call using the IR builder instance
               CallInst * call = builder->CreateCall(
                 print,
                 args,
                 ""
               );
+            } else if ((store = dyn_cast<StoreInst>(&I)) != nullptr) { // Check if the current instruction is a store
+              storeCounter++;
 
-              errs()<<"Insert call"<<*call<<"\n";
-            } else if ((store = dyn_cast<StoreInst>(&I)) != nullptr) {
-              outs() << "Store instruction\n";
-              Value * value = store->getValueOperand();
-              Value * address = store->getPointerOperand();
+              Value * value = store->getValueOperand(); // Getting the value to be stored at given address
+              Value * address = store->getPointerOperand(); // Getting source address
 
+              // Constructing argument array for 'printf' function call
               std::vector<Value *> args;
               args.push_back(storeStringPointer);
               args.push_back(value);
               args.push_back(address);
 
+              // Adding 'printf' function call using the IR builder instance
               CallInst * call = builder->CreateCall(
                 print,
                 args,
                 ""
               );
-
-              errs()<<"Insert call"<<*call<<"\n";
             }
           }
         }
       }
+
+      errs() << "Successfully detected " << loadCounter << " load call(s) and " << storeCounter << " store call(s) [total " << (loadCounter + storeCounter) << "]\n";
 
       return false;
     }
