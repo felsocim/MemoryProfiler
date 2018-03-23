@@ -9,6 +9,8 @@
 #include "llvm/IR/TypeBuilder.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/IRBuilder.h"
+#include <vector>
 
 using namespace llvm;
 
@@ -20,8 +22,10 @@ namespace {
 
     // Main pass function
     virtual bool runOnModule(Module &M) {
+      IRBuilder<> * builder = new IRBuilder<>(M.getContext());
+
       Function * print = Function::Create(
-        FunctionType::get(TypeBuilder<int(char *, ...),false>::get(M.getContext()), true),
+        TypeBuilder<int(char *, ...),false>::get(M.getContext()),
         Function::ExternalLinkage,
         "printf",
         &M
@@ -37,7 +41,14 @@ namespace {
         "I am storing %ld at address %p\n"
       );
 
+      llvm::Constant * zero = llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(M.getContext()));
+
+      std::vector<llvm::Constant *> indices;
+      indices.push_back(zero);
+      indices.push_back(zero);
+
       GlobalVariable * loadStringVariable = new GlobalVariable(
+        M,
         loadString->getType(),
         true,
         Function::InternalLinkage,
@@ -46,23 +57,55 @@ namespace {
       );
 
       GlobalVariable * storeStringVariable = new GlobalVariable(
+        M,
         storeString->getType(),
         true,
         Function::InternalLinkage,
-        loadString,
+        storeString,
         "store_string"
       );
+
+      Constant * loadStringPointer = ConstantExpr::getGetElementPtr(loadString->getType(), loadStringVariable, indices);
+      Constant * storeStringPointer = ConstantExpr::getGetElementPtr(storeString->getType(), storeStringVariable, indices);
 
       for(Function &F : M) {
         for(BasicBlock &B : F) {
           for(Instruction &I : B) {
             LoadInst * load = nullptr;
             StoreInst * store = nullptr;
+            builder->SetInsertPoint(&I);
 
             if((load = dyn_cast<LoadInst>(&I)) != nullptr) {
               outs() << "Load instruction\n";
+              Value * address = load->getPointerOperand();
+              std::vector<Value *> args;
+              args.push_back(loadStringPointer);
+              args.push_back(address);
+
+              CallInst * call = builder->CreateCall(
+                print,
+                args,
+                ""
+              );
+
+              errs()<<"Insert call"<<*call<<"\n";
             } else if ((store = dyn_cast<StoreInst>(&I)) != nullptr) {
               outs() << "Store instruction\n";
+              Value * value = store->getValueOperand();
+              Value * address = store->getPointerOperand();
+
+              std::vector<Value *> args;
+              args.push_back(storeStringPointer);
+              args.push_back(value);
+              args.push_back(address);
+
+              CallInst * call = builder->CreateCall(
+                print,
+                args,
+                ""
+              );
+
+              errs()<<"Insert call"<<*call<<"\n";
             }
           }
         }
