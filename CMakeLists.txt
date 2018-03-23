@@ -7,7 +7,7 @@ SET(CMAKE_CXX_FLAGS "-fno-rtti")
   
 # Find LLVM and add its definitions, libraries directory
 # and includes directory
-set(LLVM_INSTALL /usr/lib/llvm-5.0/lib/cmake/llvm)
+set(LLVM_INSTALL ${CMAKE_SOURCE_DIR}/../llvm-5.0.0-install-release)
 message(STATUS "Looking for LLVM in ${LLVM_INSTALL}")
 find_package(LLVM
   REQUIRED
